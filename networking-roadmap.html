@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>網路基礎互動學習地圖</title>
+  <style>
+    :root {
+      --bg: #07111f;
+      --panel: rgba(10, 21, 40, 0.86);
+      --panel-2: rgba(19, 35, 63, 0.96);
+      --panel-3: rgba(31, 52, 87, 0.92);
+      --text: #eef4ff;
+      --muted: #a9bbdf;
+      --accent: #7cb8ff;
+      --accent-2: #7af5d0;
+      --accent-3: #ffc96c;
+      --border: rgba(140, 177, 255, 0.18);
+      --shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
+      --good: #7af5d0;
+      --bad: #ff8d8d;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(122, 245, 208, 0.12), transparent 28%),
+        radial-gradient(circle at top right, rgba(124, 184, 255, 0.16), transparent 30%),
+        linear-gradient(180deg, #050c17 0%, #0a1428 48%, #0d1730 100%);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .wrap {
+      width: min(1180px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 22px 0 42px;
+    }
+
+    .hero,
+    .card {
+      background: var(--panel);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      padding: 28px;
+      margin-bottom: 20px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -40px -40px auto;
+      width: 180px;
+      height: 180px;
+      background: radial-gradient(circle, rgba(122, 245, 208, 0.2), transparent 70%);
+      pointer-events: none;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.1rem, 5vw, 3.4rem);
+      line-height: 1.05;
+      margin-bottom: 12px;
+    }
+
+    h2 {
+      font-size: 1.35rem;
+      margin-bottom: 12px;
+    }
+
+    p {
+      color: var(--muted);
+    }
+
+    .hero-copy {
+      max-width: 760px;
+    }
+
+    .pill-row,
+    .stats,
+    .topic-nav,
+    .memory-row,
+    .quiz-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .pill,
+    .stat,
+    .memory-chip {
+      border-radius: 999px;
+      border: 1px solid rgba(124, 184, 255, 0.28);
+      background: rgba(124, 184, 255, 0.1);
+      padding: 8px 12px;
+    }
+
+    .stats {
+      margin-top: 18px;
+    }
+
+    .stat strong {
+      color: var(--text);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 20px;
+    }
+
+    .card {
+      padding: 22px;
+    }
+
+    .card + .card {
+      margin-top: 20px;
+    }
+
+    .topic-nav {
+      margin-bottom: 16px;
+    }
+
+    .topic-btn,
+    .quiz-btn,
+    .reset-btn {
+      border: 1px solid var(--border);
+      background: rgba(124, 184, 255, 0.08);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 10px 14px;
+      cursor: pointer;
+      transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .topic-btn:hover,
+    .quiz-btn:hover,
+    .reset-btn:hover,
+    .osi-btn:hover,
+    .checklist label:hover {
+      transform: translateY(-2px);
+      border-color: rgba(122, 245, 208, 0.55);
+      box-shadow: 0 14px 26px rgba(0, 0, 0, 0.18);
+    }
+
+    .topic-btn.active,
+    .osi-btn.active {
+      background: linear-gradient(135deg, rgba(124, 184, 255, 0.28), rgba(122, 245, 208, 0.2));
+      border-color: rgba(122, 245, 208, 0.6);
+      color: #fff;
+    }
+
+    .topic-panel {
+      min-height: 280px;
+      border-radius: 22px;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(16, 28, 51, 0.98), rgba(13, 21, 40, 0.98));
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .topic-panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 85% 20%, rgba(124, 184, 255, 0.13), transparent 30%);
+      pointer-events: none;
+    }
+
+    .topic-panel.animate {
+      animation: panelIn 0.45s ease;
+    }
+
+    .topic-label {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255, 201, 108, 0.12);
+      border: 1px solid rgba(255, 201, 108, 0.34);
+      color: #ffe4ab;
+      margin-bottom: 12px;
+    }
+
+    .topic-layout {
+      display: grid;
+      grid-template-columns: 1fr 240px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .point-list,
+    .study-list,
+    .checklist,
+    .osi-list,
+    .quiz,
+    .timeline,
+    .memory-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .point,
+    .day,
+    .qa,
+    .memory-item,
+    .topology-card {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 14px;
+    }
+
+    .scene {
+      background: linear-gradient(180deg, rgba(124, 184, 255, 0.08), rgba(122, 245, 208, 0.06));
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      min-height: 220px;
+      padding: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .scene-title {
+      font-size: 0.95rem;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .pulse,
+    .ring-dot,
+    .bus-line,
+    .star-center,
+    .star-node,
+    .tree-node {
+      position: absolute;
+    }
+
+    .pulse {
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      border: 2px solid rgba(122, 245, 208, 0.55);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      animation: pulse 1.8s infinite;
+    }
+
+    .orbit-label {
+      position: absolute;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(10, 21, 40, 0.9);
+      border: 1px solid var(--border);
+      font-size: 0.88rem;
+    }
+
+    .orbit-a { top: 26px; left: 22px; }
+    .orbit-b { top: 34px; right: 20px; }
+    .orbit-c { bottom: 34px; left: 28px; }
+    .orbit-d { bottom: 26px; right: 20px; }
+
+    .timeline {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .day strong,
+    .point strong,
+    .memory-item strong,
+    .qa strong {
+      color: var(--text);
+    }
+
+    .checklist label {
+      display: block;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+    }
+
+    .checklist input {
+      margin-right: 10px;
+      accent-color: var(--accent-2);
+      transform: scale(1.1);
+    }
+
+    .progress-shell {
+      height: 14px;
+      background: rgba(255, 255, 255, 0.07);
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 14px 0 8px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      border-radius: inherit;
+      transition: width 0.3s ease;
+    }
+
+    .progress-text {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .topology-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .topology-card {
+      min-height: 190px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .topology-card .shape {
+      height: 92px;
+      margin: 12px 0;
+      position: relative;
+    }
+
+    .star-center,
+    .star-node,
+    .ring-dot,
+    .tree-node,
+    .bus-node {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 0 18px rgba(124, 184, 255, 0.45);
+    }
+
+    .star-center { top: 38px; left: calc(50% - 8px); }
+    .star-node.a { top: 6px; left: calc(50% - 8px); }
+    .star-node.b { top: 38px; left: 20%; }
+    .star-node.c { top: 38px; right: 20%; }
+    .star-node.d { bottom: 6px; left: calc(50% - 8px); }
+
+    .star-line,
+    .tree-line,
+    .bus-line,
+    .ring-line {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.26);
+      transform-origin: center;
+    }
+
+    .star-line.v1 { width: 2px; height: 30px; top: 16px; left: calc(50% - 1px); }
+    .star-line.v2 { width: 2px; height: 30px; top: 54px; left: calc(50% - 1px); }
+    .star-line.h1 { width: 54px; height: 2px; top: 46px; left: calc(20% + 8px); }
+    .star-line.h2 { width: 54px; height: 2px; top: 46px; right: calc(20% + 8px); }
+
+    .bus-line.main { left: 10%; right: 10%; top: 48px; height: 3px; }
+    .bus-node { position: absolute; top: 40px; }
+    .bus-node.n1 { left: 15%; }
+    .bus-node.n2 { left: 35%; }
+    .bus-node.n3 { left: 55%; }
+    .bus-node.n4 { left: 75%; }
+
+    .ring-line {
+      inset: 10px 18%;
+      border: 3px solid rgba(255, 255, 255, 0.26);
+      border-radius: 999px;
+      background: transparent;
+    }
+
+    .ring-dot.r1 { top: 8px; left: calc(50% - 8px); }
+    .ring-dot.r2 { top: 38px; left: 20%; }
+    .ring-dot.r3 { top: 38px; right: 20%; }
+    .ring-dot.r4 { bottom: 8px; left: calc(50% - 8px); }
+
+    .tree-node.root { top: 4px; left: calc(50% - 8px); }
+    .tree-node.l1 { top: 40px; left: 28%; }
+    .tree-node.l2 { top: 40px; right: 28%; }
+    .tree-node.l3 { bottom: 4px; left: 18%; }
+    .tree-node.l4 { bottom: 4px; left: 40%; }
+    .tree-node.l5 { bottom: 4px; right: 40%; }
+    .tree-node.l6 { bottom: 4px; right: 18%; }
+    .tree-line.t1 { width: 2px; height: 24px; top: 16px; left: calc(50% - 1px); }
+    .tree-line.t2 { width: 44%; height: 2px; top: 48px; left: 28%; }
+    .tree-line.t3 { width: 2px; height: 20px; top: 48px; left: 28%; }
+    .tree-line.t4 { width: 2px; height: 20px; top: 48px; right: 28%; }
+    .tree-line.t5 { width: 22%; height: 2px; bottom: 20px; left: 18%; }
+    .tree-line.t6 { width: 22%; height: 2px; bottom: 20px; right: 18%; }
+
+    .osi-list {
+      margin-top: 12px;
+    }
+
+    .osi-btn {
+      width: 100%;
+      text-align: left;
+      padding: 13px 14px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      cursor: pointer;
+      transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+    }
+
+    .osi-detail {
+      margin-top: 14px;
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(18, 34, 59, 0.98), rgba(11, 20, 36, 0.98));
+      min-height: 124px;
+      animation: panelIn 0.4s ease;
+    }
+
+    .quiz-card.correct {
+      border-color: rgba(122, 245, 208, 0.62);
+    }
+
+    .quiz-card.wrong {
+      border-color: rgba(255, 141, 141, 0.62);
+    }
+
+    .feedback {
+      min-height: 24px;
+      font-weight: 700;
+      margin-top: 10px;
+    }
+
+    .feedback.good {
+      color: var(--good);
+    }
+
+    .feedback.bad {
+      color: var(--bad);
+    }
+
+    .mini {
+      font-size: 0.94rem;
+      color: var(--muted);
+    }
+
+    .footer {
+      margin-top: 20px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    @keyframes panelIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: translate(-50%, -50%) scale(0.85);
+        opacity: 0.9;
+      }
+      70% {
+        transform: translate(-50%, -50%) scale(1.5);
+        opacity: 0;
+      }
+      100% {
+        opacity: 0;
+      }
+    }
+
+    @media (max-width: 920px) {
+      .grid,
+      .topic-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .timeline,
+      .topology-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .wrap {
+        width: min(100% - 18px, 100%);
+      }
+
+      .hero,
+      .card,
+      .topic-panel {
+        padding: 16px;
+      }
+
+      h1 {
+        font-size: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="hero-copy">
+        <h1>網路基礎互動學習地圖</h1>
+        <p>
+          這一版改成繁體中文，並加入可點擊與動畫式學習。你可以按主題切換內容、看拓樸圖形、點 OSI 各層、做小測驗，讓記憶不是只靠閱讀，而是邊看邊操作。
+        </p>
+      </div>
+      <div class="pill-row">
+        <span class="pill">PAN</span>
+        <span class="pill">LAN</span>
+        <span class="pill">MAN</span>
+        <span class="pill">WAN</span>
+        <span class="pill">TCP/IP</span>
+        <span class="pill">802.11</span>
+        <span class="pill">OSI</span>
+        <span class="pill">Client/Server</span>
+      </div>
+      <div class="stats">
+        <div class="stat"><strong>學習方式</strong> 點擊切換</div>
+        <div class="stat"><strong>重點</strong> 圖像 + 測驗 + 進度</div>
+        <div class="stat"><strong>建議</strong> 每次先學一個區塊</div>
+      </div>
+    </section>
+
+    <div class="grid">
+      <main>
+        <section class="card">
+          <h2>主題切換區</h2>
+          <p>先點一個主題。下面的說明卡會切換，並帶一點動畫幫助你聚焦。</p>
+          <div class="topic-nav" id="topicNav">
+            <button class="topic-btn active" type="button" data-topic="core">核心名詞</button>
+            <button class="topic-btn" type="button" data-topic="types">網路範圍</button>
+            <button class="topic-btn" type="button" data-topic="topology">拓樸</button>
+            <button class="topic-btn" type="button" data-topic="tech">常見技術</button>
+            <button class="topic-btn" type="button" data-topic="protocols">協定與服務</button>
+            <button class="topic-btn" type="button" data-topic="models">通訊模式</button>
+          </div>
+          <div class="topic-panel animate" id="topicPanel">
+            <div class="topic-layout">
+              <div>
+                <div class="topic-label" id="topicLabel">先修概念</div>
+                <h3 id="topicTitle">核心名詞</h3>
+                <p id="topicIntro">理解基本名詞後，後面的所有主題都會變得比較容易。</p>
+                <div class="point-list" id="topicPoints"></div>
+              </div>
+              <div class="scene" id="topicScene"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>拓樸圖像記憶</h2>
+          <p>這裡用簡化動畫圖幫你快速分辨不同拓樸。先看圖，再唸名稱，會更容易記住。</p>
+          <div class="topology-grid">
+            <article class="topology-card">
+              <h3>星狀 Star</h3>
+              <div class="shape">
+                <div class="star-center"></div>
+                <div class="star-node a"></div>
+                <div class="star-node b"></div>
+                <div class="star-node c"></div>
+                <div class="star-node d"></div>
+                <div class="star-line v1"></div>
+                <div class="star-line v2"></div>
+                <div class="star-line h1"></div>
+                <div class="star-line h2"></div>
+              </div>
+              <p>所有裝置集中連到中央設備，最常見也最好理解。</p>
+            </article>
+            <article class="topology-card">
+              <h3>匯流排 Bus</h3>
+              <div class="shape">
+                <div class="bus-line main"></div>
+                <div class="bus-node n1"></div>
+                <div class="bus-node n2"></div>
+                <div class="bus-node n3"></div>
+                <div class="bus-node n4"></div>
+              </div>
+              <p>大家共用同一條主線，只要記住「一條主幹」就行。</p>
+            </article>
+            <article class="topology-card">
+              <h3>環狀 Ring</h3>
+              <div class="shape">
+                <div class="ring-line"></div>
+                <div class="ring-dot r1"></div>
+                <div class="ring-dot r2"></div>
+                <div class="ring-dot r3"></div>
+                <div class="ring-dot r4"></div>
+              </div>
+              <p>節點像圍成一圈，資料沿著環傳送。</p>
+            </article>
+            <article class="topology-card">
+              <h3>樹狀 Tree</h3>
+              <div class="shape">
+                <div class="tree-node root"></div>
+                <div class="tree-node l1"></div>
+                <div class="tree-node l2"></div>
+                <div class="tree-node l3"></div>
+                <div class="tree-node l4"></div>
+                <div class="tree-node l5"></div>
+                <div class="tree-node l6"></div>
+                <div class="tree-line t1"></div>
+                <div class="tree-line t2"></div>
+                <div class="tree-line t3"></div>
+                <div class="tree-line t4"></div>
+                <div class="tree-line t5"></div>
+                <div class="tree-line t6"></div>
+              </div>
+              <p>像樹枝一層一層往下展開，重點是階層結構。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>OSI 七層點擊學習</h2>
+          <p>從上到下點看看。每次只專心記一層的用途，會比一次背七層更輕鬆。</p>
+          <div class="osi-list" id="osiList">
+            <button class="osi-btn active" type="button" data-layer="7">第 7 層 應用層 Application</button>
+            <button class="osi-btn" type="button" data-layer="6">第 6 層 表示層 Presentation</button>
+            <button class="osi-btn" type="button" data-layer="5">第 5 層 會議層 Session</button>
+            <button class="osi-btn" type="button" data-layer="4">第 4 層 傳輸層 Transport</button>
+            <button class="osi-btn" type="button" data-layer="3">第 3 層 網路層 Network</button>
+            <button class="osi-btn" type="button" data-layer="2">第 2 層 資料連結層 Data Link</button>
+            <button class="osi-btn" type="button" data-layer="1">第 1 層 實體層 Physical</button>
+          </div>
+          <div class="osi-detail" id="osiDetail"></div>
+        </section>
+
+        <section class="card">
+          <h2>7 天小計畫</h2>
+          <div class="timeline">
+            <div class="day"><strong>第 1 天</strong><br>學會 Network、Internet、Server、Client、bps。</div>
+            <div class="day"><strong>第 2 天</strong><br>練習分辨 PAN、LAN、MAN、WAN，並找生活例子。</div>
+            <div class="day"><strong>第 3 天</strong><br>畫出 Star、Bus、Ring、Tree，讓圖像進腦中。</div>
+            <div class="day"><strong>第 4 天</strong><br>記住 Ethernet、Wi-Fi、Bluetooth、DSL 是什麼。</div>
+            <div class="day"><strong>第 5 天</strong><br>學 TCP/IP、FTP、WWW、E-mail、Telnet 的用途。</div>
+            <div class="day"><strong>第 6 天</strong><br>比較 Client/Server 與 Peer-to-Peer。</div>
+            <div class="day"><strong>第 7 天</strong><br>重複點 OSI 七層，做小測驗，整體複習。</div>
+          </div>
+        </section>
+      </main>
+
+      <aside>
+        <section class="card">
+          <h2>學習進度</h2>
+          <p>每勾一項就代表你至少可以用自己的話講一次。</p>
+          <div class="checklist" id="checklist">
+            <label><input type="checkbox">我能解釋什麼是網路。</label>
+            <label><input type="checkbox">我知道 Internet 與 WWW 不一樣。</label>
+            <label><input type="checkbox">我能分辨 PAN、LAN、MAN、WAN。</label>
+            <label><input type="checkbox">我能辨認星狀、匯流排、環狀、樹狀拓樸。</label>
+            <label><input type="checkbox">我知道 Ethernet、802.11、Bluetooth、DSL。</label>
+            <label><input type="checkbox">我能說出 TCP/IP、FTP、Telnet 的用途。</label>
+            <label><input type="checkbox">我知道 Client/Server 與 Peer-to-Peer 的差別。</label>
+            <label><input type="checkbox">我能依序說出 OSI 七層。</label>
+          </div>
+          <div class="progress-shell">
+            <div class="progress-bar" id="progressBar"></div>
+          </div>
+          <div class="progress-text" id="progressText">目前完成 0 / 8</div>
+        </section>
+
+        <section class="card">
+          <h2>快速記憶法</h2>
+          <div class="memory-list">
+            <div class="memory-item"><strong>PAN</strong><br>個人範圍，想到手機連耳機。</div>
+            <div class="memory-item"><strong>LAN</strong><br>區域範圍，想到家裡或學校網路。</div>
+            <div class="memory-item"><strong>MAN</strong><br>都市範圍，想到整個城市。</div>
+            <div class="memory-item"><strong>WAN</strong><br>廣域範圍，想到跨城市、跨國。</div>
+            <div class="memory-item"><strong>802.3</strong><br>就是 Ethernet。</div>
+            <div class="memory-item"><strong>802.11</strong><br>就是 Wi-Fi。</div>
+            <div class="memory-item"><strong>TCP/IP</strong><br>網際網路最重要的通訊基礎。</div>
+            <div class="memory-item"><strong>OSI</strong><br>標準參考模型，共 7 層。</div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>即時小測驗</h2>
+          <div class="quiz">
+            <div class="qa quiz-card" data-answer="LAN">
+              <strong>1.</strong> 家裡的 Wi-Fi 通常算哪一種網路？
+              <div class="quiz-options">
+                <button class="quiz-btn" type="button">LAN</button>
+                <button class="quiz-btn" type="button">WAN</button>
+                <button class="quiz-btn" type="button">MAN</button>
+              </div>
+              <div class="feedback"></div>
+            </div>
+            <div class="qa quiz-card" data-answer="802.11">
+              <strong>2.</strong> Wi-Fi 對應的標準是什麼？
+              <div class="quiz-options">
+                <button class="quiz-btn" type="button">802.3</button>
+                <button class="quiz-btn" type="button">802.11</button>
+                <button class="quiz-btn" type="button">FTP</button>
+              </div>
+              <div class="feedback"></div>
+            </div>
+            <div class="qa quiz-card" data-answer="Star">
+              <strong>3.</strong> 哪一種拓樸是所有設備接到中央設備？
+              <div class="quiz-options">
+                <button class="quiz-btn" type="button">Ring</button>
+                <button class="quiz-btn" type="button">Star</button>
+                <button class="quiz-btn" type="button">Bus</button>
+              </div>
+              <div class="feedback"></div>
+            </div>
+          </div>
+          <div style="margin-top: 14px;">
+            <button class="reset-btn" id="resetQuiz" type="button">重設小測驗</button>
+          </div>
+        </section>
+      </aside>
+    </div>
+
+    <div class="footer">直接用瀏覽器打開這個 HTML，就可以用互動方式複習網路基礎。</div>
+  </div>
+
+  <script>
+    const topics = {
+      core: {
+        label: "先修概念",
+        title: "核心名詞",
+        intro: "先把最基本的字搞懂，後面的網路範圍、協定、拓樸才不會混在一起。",
+        points: [
+          ["Network", "多個裝置彼此連接，可以分享資料與資源。"],
+          ["Internet", "全球很多網路連成的大型網路，主要使用 TCP/IP。"],
+          ["Server / Client", "Server 提供服務，Client 發出請求來使用服務。"],
+          ["bps", "bits per second，每秒傳輸多少位元，是速度單位。"]
+        ],
+        sceneTitle: "概念圖像",
+        sceneHtml: `
+          <div class="scene-title">把 Internet 想成很多小網路互相連接。</div>
+          <div class="pulse"></div>
+          <div class="orbit-label orbit-a">家用網路</div>
+          <div class="orbit-label orbit-b">學校網路</div>
+          <div class="orbit-label orbit-c">公司網路</div>
+          <div class="orbit-label orbit-d">雲端服務</div>
+        `
+      },
+      types: {
+        label: "分類重點",
+        title: "網路範圍",
+        intro: "這一組最重要的是用範圍大小來記，不要只背英文縮寫。",
+        points: [
+          ["PAN", "個人範圍網路，例如手機連藍牙耳機。"],
+          ["LAN", "區域網路，例如家裡、教室、辦公室。"],
+          ["MAN", "都會網路，覆蓋一整個城市。"],
+          ["WAN", "廣域網路，跨城市甚至跨國家。"]
+        ],
+        sceneTitle: "記憶順序",
+        sceneHtml: `
+          <div class="scene-title">由小到大：PAN → LAN → MAN → WAN</div>
+          <div class="memory-row">
+            <span class="memory-chip">PAN 個人</span>
+            <span class="memory-chip">LAN 區域</span>
+            <span class="memory-chip">MAN 城市</span>
+            <span class="memory-chip">WAN 廣域</span>
+          </div>
+        `
+      },
+      topology: {
+        label: "圖像學習",
+        title: "拓樸 Topology",
+        intro: "拓樸就是設備怎麼連。考試常會給圖，要你判斷是哪一種。",
+        points: [
+          ["Star", "中心設備最醒目，現代網路常見。"],
+          ["Bus", "一條主線，所有裝置掛在上面。"],
+          ["Ring", "節點首尾相連形成一圈。"],
+          ["Tree / Hybrid", "樹狀有階層，混合式是多種拓樸結合。"]
+        ],
+        sceneTitle: "辨識技巧",
+        sceneHtml: `
+          <div class="scene-title">看題目時先找「中央設備」、「一條主線」或「圍一圈」。</div>
+          <div class="memory-row">
+            <span class="memory-chip">中央設備 = Star</span>
+            <span class="memory-chip">單一主線 = Bus</span>
+            <span class="memory-chip">封閉迴圈 = Ring</span>
+          </div>
+        `
+      },
+      tech: {
+        label: "生活例子",
+        title: "常見技術",
+        intro: "把技術名詞對到真實設備，記憶會更牢。",
+        points: [
+          ["Ethernet", "有線區域網路標準，常見於網路線。"],
+          ["802.11", "無線區域網路標準，也就是 Wi-Fi。"],
+          ["Bluetooth", "短距離個人無線通訊。"],
+          ["DSL", "利用電話線提供網際網路服務。"]
+        ],
+        sceneTitle: "生活連結",
+        sceneHtml: `
+          <div class="scene-title">把每個字對到你真的看過的裝置。</div>
+          <div class="memory-row">
+            <span class="memory-chip">網路線 = Ethernet</span>
+            <span class="memory-chip">家用無線 = 802.11</span>
+            <span class="memory-chip">耳機連手機 = Bluetooth</span>
+          </div>
+        `
+      },
+      protocols: {
+        label: "功能理解",
+        title: "協定與服務",
+        intro: "這裡不要死背英文，全都用『它是拿來做什麼』來記。",
+        points: [
+          ["TCP/IP", "網際網路最核心的通訊協定族。"],
+          ["FTP", "用來傳輸檔案。"],
+          ["WWW", "透過瀏覽器看的網頁世界。"],
+          ["Telnet / E-mail", "Telnet 是舊式遠端登入，E-mail 是電子郵件服務。"]
+        ],
+        sceneTitle: "功能對照",
+        sceneHtml: `
+          <div class="scene-title">問自己：它是傳檔？看網頁？還是建立基本通訊？</div>
+          <div class="memory-row">
+            <span class="memory-chip">FTP = 傳檔</span>
+            <span class="memory-chip">WWW = 看網頁</span>
+            <span class="memory-chip">TCP/IP = 通訊基礎</span>
+          </div>
+        `
+      },
+      models: {
+        label: "系統觀念",
+        title: "通訊模式",
+        intro: "這一組常考比較題，記住『有沒有中心』就很有效。",
+        points: [
+          ["Client/Server", "由中央伺服器提供服務，客戶端提出要求。"],
+          ["Peer-to-Peer", "裝置彼此平等，可以直接互相分享。"],
+          ["比較方式", "有中心集中管理，多半是 Client/Server；彼此直接共享，多半是 P2P。"]
+        ],
+        sceneTitle: "快速判斷",
+        sceneHtml: `
+          <div class="scene-title">看到中央主機就先想到 Client/Server，看到彼此互連就想到 P2P。</div>
+          <div class="memory-row">
+            <span class="memory-chip">有中心 = Client/Server</span>
+            <span class="memory-chip">互相共享 = Peer-to-Peer</span>
+          </div>
+        `
+      }
+    };
+
+    const osiLayers = {
+      7: {
+        title: "第 7 層 應用層 Application",
+        text: "最靠近使用者。像網頁、電子郵件、檔案服務，都是你最容易感受到的一層。"
+      },
+      6: {
+        title: "第 6 層 表示層 Presentation",
+        text: "負責資料格式、編碼、加密、解密。你可以把它想成資料翻譯員。"
+      },
+      5: {
+        title: "第 5 層 會議層 Session",
+        text: "管理連線過程中的對話與工作階段，決定何時開始、維持、結束。"
+      },
+      4: {
+        title: "第 4 層 傳輸層 Transport",
+        text: "負責端到端傳輸，常想到 TCP、UDP。重點是可靠傳送與分段。"
+      },
+      3: {
+        title: "第 3 層 網路層 Network",
+        text: "負責路由與邏輯位址，資料要走哪條路，多半在這一層決定。"
+      },
+      2: {
+        title: "第 2 層 資料連結層 Data Link",
+        text: "處理同一網段中的傳送，和 MAC 位址、乙太網路觀念關係很大。"
+      },
+      1: {
+        title: "第 1 層 實體層 Physical",
+        text: "最底層，真的電線、訊號、接頭、傳輸媒介都在這裡。"
+      }
+    };
+
+    const topicButtons = document.querySelectorAll('.topic-btn');
+    const topicPanel = document.getElementById('topicPanel');
+    const topicLabel = document.getElementById('topicLabel');
+    const topicTitle = document.getElementById('topicTitle');
+    const topicIntro = document.getElementById('topicIntro');
+    const topicPoints = document.getElementById('topicPoints');
+    const topicScene = document.getElementById('topicScene');
+
+    function renderTopic(key) {
+      const topic = topics[key];
+      topicLabel.textContent = topic.label;
+      topicTitle.textContent = topic.title;
+      topicIntro.textContent = topic.intro;
+      topicPoints.innerHTML = topic.points.map(([term, desc]) => `
+        <div class="point"><strong>${term}</strong><br>${desc}</div>
+      `).join('');
+      topicScene.innerHTML = topic.sceneHtml;
+      topicPanel.classList.remove('animate');
+      void topicPanel.offsetWidth;
+      topicPanel.classList.add('animate');
+    }
+
+    topicButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        topicButtons.forEach((item) => item.classList.remove('active'));
+        button.classList.add('active');
+        renderTopic(button.dataset.topic);
+      });
+    });
+
+    const osiButtons = document.querySelectorAll('.osi-btn');
+    const osiDetail = document.getElementById('osiDetail');
+
+    function renderOsi(layer) {
+      const item = osiLayers[layer];
+      osiDetail.innerHTML = `<h3>${item.title}</h3><p>${item.text}</p>`;
+    }
+
+    osiButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        osiButtons.forEach((item) => item.classList.remove('active'));
+        button.classList.add('active');
+        renderOsi(button.dataset.layer);
+      });
+    });
+
+    const checks = document.querySelectorAll('#checklist input');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+
+    function updateProgress() {
+      const total = checks.length;
+      const done = Array.from(checks).filter((input) => input.checked).length;
+      const percent = (done / total) * 100;
+      progressBar.style.width = `${percent}%`;
+      progressText.textContent = `目前完成 ${done} / ${total}`;
+    }
+
+    checks.forEach((input) => input.addEventListener('change', updateProgress));
+
+    const quizCards = document.querySelectorAll('.quiz-card');
+    const resetQuiz = document.getElementById('resetQuiz');
+
+    quizCards.forEach((card) => {
+      const answer = card.dataset.answer;
+      const feedback = card.querySelector('.feedback');
+      card.querySelectorAll('.quiz-btn').forEach((button) => {
+        button.addEventListener('click', () => {
+          card.classList.remove('correct', 'wrong');
+          feedback.classList.remove('good', 'bad');
+          if (button.textContent === answer) {
+            card.classList.add('correct');
+            feedback.classList.add('good');
+            feedback.textContent = `答對了，答案是 ${answer}。`;
+          } else {
+            card.classList.add('wrong');
+            feedback.classList.add('bad');
+            feedback.textContent = `這題再想一下，正確答案是 ${answer}。`;
+          }
+        });
+      });
+    });
+
+    resetQuiz.addEventListener('click', () => {
+      quizCards.forEach((card) => {
+        card.classList.remove('correct', 'wrong');
+        const feedback = card.querySelector('.feedback');
+        feedback.textContent = '';
+        feedback.classList.remove('good', 'bad');
+      });
+    });
+
+    renderTopic('core');
+    renderOsi('7');
+    updateProgress();
+  </script>
+</body>
+</html>
