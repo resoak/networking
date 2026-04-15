@@ -41,3 +41,13 @@
 - [[IEEE 802 與 Ethernet]]
 - [[Hub、Bridge、Switch]]
 - [[快速記憶卡]]
+
+## 簡報補充
+
+- `CSMA/CD` 可以拆成三個詞來記：
+  - `Carrier Sense`：先感測媒體上有沒有人在傳
+  - `Multiple Access`：多台主機共用同一媒體
+  - `Collision Detection`：邊傳邊偵測碰撞
+- 真正碰撞時，裝置會先送出 `Jamming Signal`，讓其他主機知道剛剛發生碰撞。
+- 之後不是立刻再傳，而是做 `Backoff`，也就是隨機退讓等待。
+- 重點不是某一台最快，而是讓共享媒體下的整體傳輸更公平、更穩定。

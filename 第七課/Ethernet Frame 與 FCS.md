@@ -41,3 +41,17 @@
 - [[IEEE 802 與 Ethernet]]
 - [[MAC 位址與網路設定]]
 - [[Hub、Bridge、Switch]]
+
+## 簡報補充
+
+- 投影片把 Ethernet 訊框重點再補成下面幾個欄位：
+  - `Preamble`
+  - `Destination MAC`
+  - `Source MAC`
+  - `Type / Length`
+  - `Data`
+  - `FCS`
+- `MAC` 位址長度是 **48 bits = 6 Bytes**。
+- 廣播位址可以直接記成：`FF-FF-FF-FF-FF-FF`。
+- `Data` 欄位一般記成 **46 ~ 1500 Bytes**；太短要補 `Padding`。
+- `FCS` 是 **4 Bytes / 32 bits**，常用 `CRC-32` 來做錯誤檢查。
